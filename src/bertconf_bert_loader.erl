@@ -50,7 +50,7 @@ reload_bert(OldChanges) ->
     Terms = [Terms || File <- Files,
                       {ok, Bin} <- [file:read_file(File)],
                       {ok, Terms} <- [bertconf_lib:decode(Bin)]],
-    NewTables = store(merge(lists:sort(lists:flatten(Terms)))),
+    NewTables = store(transform(merge(lists:sort(lists:flatten(Terms))))),
     OldTables = update_table_index(NewTables),
     NewChanges = lists:append([Refs || {_, Refs} <- Changes]),
     {OldTables, NewChanges}.
@@ -73,6 +73,15 @@ merge([{NameSpace, ListA}, {NameSpace, ListB} | Terms]) -> % identical NS.
     merge([{NameSpace, ListA++ListB} | Terms]);
 merge([Table | Terms]) -> % different NS
     [Table | merge(Terms)].
+
+transform([]) -> [];
+transform([[]|Tables]) -> % some file not respecting the format got skipped
+    transform(Tables);
+transform([{NameSpace, Records} | Tables]) ->
+    case application:get_env(bertconf, transform_fun) of
+        undefined -> [{NameSpace, Records} | transform(Tables)];
+        {ok, {M, F}} -> [apply(M, F, [{NameSpace, Records}]) | transform(Tables)]
+    end.
 
 store([]) -> [];
 store([[]|Tables]) -> % some file not respecting the format got skipped

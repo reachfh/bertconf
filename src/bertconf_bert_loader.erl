@@ -80,7 +80,7 @@ transform([[]|Tables]) -> % some file not respecting the format got skipped
 transform([{NameSpace, Records} | Tables]) ->
     case application:get_env(bertconf, transform_fun) of
         undefined -> [{NameSpace, Records} | transform(Tables)];
-        {ok, {M, F}} -> [apply(M, F, [{NameSpace, Records}]) | transform(Tables)]
+        {ok, {M, F, A}} -> [apply(M, F, [{NameSpace, Records}] ++ A) | transform(Tables)]
     end.
 
 store([]) -> [];
